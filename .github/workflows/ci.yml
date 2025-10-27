@@ -1,15 +1,14 @@
-name: CI/CD Pipeline
+name: CloudFlow CI/CD Pipeline
 
 on:
   push:
-    branches: [ main ]
+    branches: [dev, staging, main]
   pull_request:
-    branches: [ main ]
+    branches: [staging, main]
 
 jobs:
   build-test:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -28,7 +27,6 @@ jobs:
   docker-build-push:
     needs: build-test
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
 
     steps:
       - name: Checkout repository
@@ -43,8 +41,17 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      - name: Define Docker tag
+        id: vars
+        run: |
+          if [[ "${GITHUB_REF_NAME}" == "main" ]]; then
+            echo "tag=latest" >> $GITHUB_OUTPUT
+          else
+            echo "tag=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
+          fi
+
       - name: Build and Push Docker image
         uses: docker/build-push-action@v6
         with:
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/nodejs-devops-demo:latest
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/cloudflow:${{ steps.vars.outputs.tag }}
