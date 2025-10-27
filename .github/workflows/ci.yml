@@ -9,6 +9,7 @@ on:
 jobs:
   build-test:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -27,6 +28,7 @@ jobs:
   docker-build-push:
     needs: build-test
     runs-on: ubuntu-latest
+    if: github.ref_name == 'dev' || github.ref_name == 'staging' || github.ref_name == 'main'
 
     steps:
       - name: Checkout repository
@@ -46,12 +48,15 @@ jobs:
         run: |
           if [[ "${GITHUB_REF_NAME}" == "main" ]]; then
             echo "tag=latest" >> $GITHUB_OUTPUT
+          elif [[ "${GITHUB_REF_NAME}" == "staging" ]]; then
+            echo "tag=staging" >> $GITHUB_OUTPUT
           else
-            echo "tag=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
+            echo "tag=dev" >> $GITHUB_OUTPUT
           fi
 
-      - name: Build and Push Docker image
+      - name: Build and push Docker image
         uses: docker/build-push-action@v6
         with:
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/cloudflow:${{ steps.vars.outputs.tag }}
+          file: ./Dockerfile
