@@ -3,56 +3,62 @@ name: CloudFlow CI/CD Pipeline
 on:
   push:
     branches: [main]
- # pull_request:
- #   branches: [staging, main]
 
 jobs:
-  build:
-    name: Build & Deploy
+  build_and_deploy:
+    name: Build, Push, and Deploy
     runs-on: ubuntu-latest
 
     steps:
+    # 1. Checkout code
     - name: Checkout
       uses: actions/checkout@v2
 
-    - name: Configure AWS credentials
+    # 2. Configure AWS credentials
+    - name: Configure AWS Credentials
       uses: aws-actions/configure-aws-credentials@v1
       with:
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: ${{ secrets.AWS_REGION }}
 
-    - name: Login to Amazon ECR
-      id: login-ecr
+    # 3. Login to Amazon ECR
+    - name: Login to ECR
+      id: ecr_login
       uses: aws-actions/amazon-ecr-login@v1
 
-    - name: Build, tag, and push the image to Amazon ECR
-      id: build-image
-      env:
-        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-        ECR_REPOSITORY: noderepo
+    # 4. Build, tag, and push Docker image
+    - name: Build and Push Docker Image
       run: |
-        # Build a docker container and push it to ECR 
-        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$GITHUB_SHA .
-        echo "Pushing image to ECR..."
-        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$GITHUB_SHA
-        #echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY:$GITHUB_SHA"
-    - name: Deploy on AWS EC2
+        IMAGE_URI=${{ steps.ecr_login.outputs.registry }}/noderepo
+        echo "Building image..."
+        docker build -t $IMAGE_URI:$GITHUB_SHA .
+        docker tag $IMAGE_URI:$GITHUB_SHA $IMAGE_URI:latest
+        echo "Pushing images to ECR..."
+        docker push $IMAGE_URI:$GITHUB_SHA
+        docker push $IMAGE_URI:latest
+
+    # 5. Deploy to EC2 using SSH + docker-compose
+    - name: Deploy on EC2
       env:
-        PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY  }}
-        HOSTNAME: ${{ secrets.HOSTNAME  }}
-        USER_NAME: ${{ secrets.USERNAME  }}
-        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        HOSTNAME: ${{ secrets.HOSTNAME }}
+        USER_NAME: ${{ secrets.USERNAME }}
+        ECR_REGISTRY: ${{ steps.ecr_login.outputs.registry }}
       run: |
-        echo "$PRIVATE_KEY" > private_key.pem && chmod 600 private_key.pem
-        ls
-        sed -i -e 's/GITHUB_SHA/'"$GITHUB_SHA"'/' ${{ github.workspace }}/docker-compose.yml
-        sed -i -e 's/ECR_REGISTRY/'"$ECR_REGISTRY"'/' ${{ github.workspace }}/docker-compose.yml
-        scp -o StrictHostKeyChecking=no -i private_key.pem ${{ github.workspace }}/docker-compose.yml ${USER_NAME}@${HOSTNAME}:/tmp 
+        # Save private key
+        echo "$PRIVATE_KEY" > private_key.pem
+        chmod 600 private_key.pem
+
+        # Replace placeholders in docker-compose.yml
+        sed -i -e 's|ECR_REGISTRY|'$ECR_REGISTRY'|' ${{ github.workspace }}/docker-compose.yml
+        sed -i -e 's|GITHUB_SHA|'$GITHUB_SHA'|' ${{ github.workspace }}/docker-compose.yml
+
+        # Copy docker-compose.yml to EC2
+        scp -o StrictHostKeyChecking=no -i private_key.pem ${{ github.workspace }}/docker-compose.yml ${USER_NAME}@${HOSTNAME}:/tmp
+
+        # SSH and run container using modern Docker Compose plugin
         ssh -o StrictHostKeyChecking=no -i private_key.pem ${USER_NAME}@${HOSTNAME} '
-          
           cd /tmp
-          # docker stop backend-flask
-          # docker rm backend-flask
-          docker-compose -p backend-flask up -d
+          docker compose -p nodejs-app up -d
         '
