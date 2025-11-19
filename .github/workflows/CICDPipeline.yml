@@ -45,6 +45,9 @@ jobs:
           HOSTNAME: ${{ secrets.HOSTNAME }}
           USER_NAME: ${{ secrets.USERNAME }}
           ECR_REGISTRY: ${{ steps.ecr_login.outputs.registry }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: |
           # Save private key
           echo "$PRIVATE_KEY" > private_key.pem
@@ -57,24 +60,29 @@ jobs:
           # Copy docker-compose.yml to EC2
           scp -o StrictHostKeyChecking=no -i private_key.pem ${{ github.workspace }}/docker-compose.yml ${USER_NAME}@${HOSTNAME}:/tmp
           
-          # SSH and run container using Docker Compose
-          ssh -o StrictHostKeyChecking=no -i private_key.pem ${USER_NAME}@${HOSTNAME} << 'EOF'
+          # SSH and run container using Docker Compose (use EOF without quotes to allow variable expansion)
+          ssh -o StrictHostKeyChecking=no -i private_key.pem ${USER_NAME}@${HOSTNAME} << EOF
             cd /tmp
             
+            # Export AWS credentials for ECR authentication
+            export AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID}"
+            export AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY}"
+            export AWS_DEFAULT_REGION="${AWS_REGION}"
+            
             # Login to ECR from EC2
-            aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ steps.ecr_login.outputs.registry }}
+            aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_REGISTRY}
             
             # Pull latest images
-            docker compose pull
+            docker compose pull || docker-compose pull
             
             # Stop and remove old containers
-            docker compose --project-name nodejs-app down || true
+            docker compose --project-name nodejs-app down || docker-compose --project-name nodejs-app down || true
             
-            # Deploy with docker compose v2 syntax
-            docker compose --project-name nodejs-app up -d
+            # Deploy with docker compose
+            docker compose --project-name nodejs-app up -d || docker-compose --project-name nodejs-app up -d
             
             # Verify deployment
-            docker compose --project-name nodejs-app ps
+            docker compose --project-name nodejs-app ps || docker-compose --project-name nodejs-app ps
             
             # Clean up old images to save space
             docker image prune -af --filter "until=24h" || true
