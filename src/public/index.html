@@ -1,37 +1,101 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CloudFlow</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             background-color: #f7f9fc;
             color: #333;
-            text-align: left;
-            padding: 50px;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
         }
+
         h1 {
             color: #007acc;
+            margin-bottom: 20px;
         }
+
+        h2 {
+            color: #2c3e50;
+            border-bottom: 2px solid #eaecef;
+            padding-bottom: 10px;
+            margin-top: 40px;
+        }
+
         p {
-            font-size: 1.2rem;
-            max-width: 600px;
-            margin: 20px auto;
+            margin-bottom: 16px;
+            font-size: 1.1rem;
         }
-        .highlight {
-            color: #28a745;
+
+        img {
+            max-width: 100%;
+            height: auto;
+            margin: 20px 0;
+            background: white;
+            padding: 20px;
+        }
+
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        li {
+            margin-bottom: 12px;
+            padding-left: 24px;
+            position: relative;
+        }
+
+        li::before {
+            content: "•";
+            color: #007acc;
             font-weight: bold;
+            position: absolute;
+            left: 0;
+        }
+
+        strong {
+            color: #2c3e50;
+        }
+
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
         }
     </style>
 </head>
-<body>
-    <h1>CloudFlow</h1>
-    <p>CloudFlow is a <span class="highlight">DevOps automation platform</span> designed to help developers and teams streamline their workflows.</p>
-    <p>With CloudFlow, you can easily build, test, and deploy applications to AWS using automated CI/CD pipelines, ensuring faster and more reliable software delivery.</p>
-    <p>Manage your Docker containers, ECR repositories, and EC2 deployments with confidence, all in a single platform.</p>
-<p>v-7</p>
 
+<body>
+    <div class="container">
+        <h1>CloudFlow</h1>
+
+        <p>This is a full-stack Hello World application with automated infrastructure provisioning and continuous
+            deployment. The project showcases modern DevOps practices including containerization, infrastructure as
+            code, and automated CI/CD pipelines for deploying to AWS.</p>
+
+        <h2>Architecture</h2>
+
+        <p>The application runs on AWS with the following components:</p>
+
+        <img src="assets/architecture.png" alt="CloudFlow Architecture Diagram">
+
+        <ul>
+            <li><strong>Amazon ECR</strong> - Private Docker image repository</li>
+            <li><strong>EC2 Instance</strong> - Hosts the containerized Node.js application</li>
+            <li><strong>Elastic IP</strong> - Static public IP address</li>
+            <li><strong>VPC</strong> - Network isolation with public subnet</li>
+            <li><strong>Security Groups</strong> - Controls traffic to EC2 instance</li>
+            <li><strong>GitHub Actions</strong> - Automated CI/CD pipeline</li>
+        </ul>
+    </div>
 </body>
+
 </html>

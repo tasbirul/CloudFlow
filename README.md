@@ -10,7 +10,7 @@ This is a full-stack Hello World application with automated infrastructure provi
 
 The application runs on AWS with the following components:
 
-![Architecture Diagram](assets/architecture.png)
+![Architecture Diagram](./src/public/assets/architecture.png)
 
 - **Amazon ECR** - Private Docker image repository
 - **EC2 Instance** - Hosts the containerized Node.js application
