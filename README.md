@@ -10,6 +10,8 @@ This is a full-stack Hello World application with automated infrastructure provi
 
 The application runs on AWS with the following components:
 
+![Architecture Diagram](assets/architecture.png)
+
 - **Amazon ECR** - Private Docker image repository
 - **EC2 Instance** - Hosts the containerized Node.js application
 - **Elastic IP** - Static public IP address
@@ -78,10 +80,10 @@ cd CloudFlow
 2. Create EC2 key pair
 ```bash
 aws ec2 create-key-pair \
-  --key-name mykey \
+  --key-name your-key \
   --query 'KeyMaterial' \
-  --output text > mykey.pem
-chmod 400 mykey.pem
+  --output text > your-key.pem
+chmod 400 your-key.pem
 ```
 
 3. Deploy infrastructure
@@ -167,7 +169,7 @@ Key Terraform variables in `terraform/variables.tf`:
 - `aws_region` - AWS region for deployment (default: us-east-1)
 - `vpc_cidr` - VPC CIDR block (default: 10.0.0.0/16)
 - `instance_type` - EC2 instance type (default: t3.micro)
-- `key_name` - SSH key pair name (default: mykey)
+- `key_name` - SSH key pair name (default: your-key)
 - `ecr_repo_name` - ECR repository name (default: noderepo)
 - `container_port` - Application port (default: 3000)
 
@@ -186,7 +188,7 @@ Triggered on every push to the `main` branch.
 
 Access EC2 instance logs:
 ```bash
-ssh -i mykey.pem ubuntu@INSTANCE_IP
+ssh -i your-key.pem ubuntu@INSTANCE_IP
 docker logs -f <container_name>
 docker ps -a
 ```
@@ -210,7 +212,7 @@ aws ec2 describe-instances
 
 # Verify security group rules
 # SSH into instance
-ssh -i mykey.pem ubuntu@<ELASTIC_IP>
+ssh -i your-key.pem ubuntu@<ELASTIC_IP>
 docker ps
 ```
 
